@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Static Website - Powered by AWS S3 & LocalStack</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #232f3e 0%, #16191f 100%);
+        color: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      
+      .container {
+        text-align: center;
+        max-width: 800px;
+        animation: fadeIn 1s ease-in;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .logo {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        box-shadow: 0 10px 30px rgba(255, 153, 0, 0.3);
+      }
+      
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+      }
+      
+      .highlight {
+        color: #ff9900;
+        font-weight: 700;
+      }
+      
+      p {
+        font-size: 1.25rem;
+        color: #aab7b8;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+      
+      .tech-stack {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+      }
+      
+      .badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      
+      footer {
+        position: absolute;
+        bottom: 2rem;
+        color: #666;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">☁️</div>
+      <h1>Welcome to Your <span class="highlight">S3 Static Website</span></h1>
+      <p>
+        This website is deployed locally using <strong>AWS S3</strong> and <strong>Terraform</strong> 
+        with LocalStack. Experience the power of Infrastructure as Code without AWS costs!
+      </p>
+      <div class="tech-stack">
+        <span class="badge">AWS S3</span>
+        <span class="badge">Terraform</span>
+        <span class="badge">LocalStack</span>
+        <span class="badge">Infrastructure as Code</span>
+      </div>
+    </div>
+    <footer>
+      Built with ❤️ for AWS Learning | LocalStack Project 03
+    </footer>
+  </body>
+</html>
