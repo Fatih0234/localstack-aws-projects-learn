@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Serverless image resizer</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
+        crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css"
+        rel="stylesheet">
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+</head>
+<body>
+
+<div class="col-lg-8 mx-auto p-4 py-md-5">
+  <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+    <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+      <span class="fs-5"><i class="bi bi-images fs-4"></i> Serverless thumbnail generator</span>
+    </a>
+  </header>
+
+  <section>
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-gear"></i> Configuration
+      </div>
+      <div class="card-body">
+        <h5 class="card-text">
+          Set the Lambda Function URLs here
+        </h5>
+        <form id="configForm" action="#" method="post">
+          <div class="mb-3">
+            <label class="form-label" for="functionUrlPresign">
+              Function URL of the <code>presign</code> Lambda
+            </label>
+            <input type="text" class="form-control" id="functionUrlPresign"  autocomplete="false"/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="functionUrlList">
+              Function URL of the <code>list</code> Lambda
+            </label>
+            <input type="text" class="form-control" id="functionUrlList" autocomplete="false"/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="functionUrlStyleTransfer">
+              Function URL of the <code>styletransfer</code> Lambda
+            </label>
+            <input type="text" class="form-control" id="functionUrlStyleTransfer" autocomplete="false"/>
+          </div>
+          <div class="mb-3">
+            <button type="submit" name="load" class="btn btn-primary mb-3">Load from API</button>
+            <button type="submit" name="save" class="btn btn-primary mb-3">Apply</button>
+            <button type="submit" name="clear" class="btn btn-secondary mb-3">Clear</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-4">
+    <h1 class="h4">Upload your file <i class="bi bi-cloud-upload"></i></h1>
+    <hr>
+    <div class="card">
+      <div class="card-header">
+        Input
+      </div>
+      <div class="card-body">
+        <h5 class="card-title">Form</h5>
+        <p class="card-text">
+          This form calls the <code>presign</code> Lambda to request a S3 pre-signed POST URL,
+          and then forwards the POST request directly to S3.
+          Resizing the image to max 400x400 pixels happens asynchronously through S3 bucket notifications.
+          If the resizing of an image fails, then an SNS message will be sent, which will trigger an SES email
+          notification. You can find those by visiting
+          <a href="//localhost.localstack.cloud:4566/_aws/ses">http://localhost.localstack.cloud:4566/_aws/ses</a>
+        </p>
+        <form id="uploadForm" action="#" method="post">
+          <div class="mb-3">
+            <label class="form-label" for="customFile">Select your file to upload</label>
+            <input type="file" class="form-control" id="customFile" name="file" required/>
+          </div>
+          <div class="mb-3">
+            <button type="submit" class="btn btn-primary mb-3">Upload <i
+                class="bi bi-cloud-upload-fill"></i></button>
+          </div>
+
+          <input type="hidden" name="key" id="key">
+          <input type="hidden" name="AWSAccessKeyId" id="AWSAccessKeyId">
+          <input type="hidden" name="policy" id="policy">
+          <input type="hidden" name="signature" id="signature">
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-4">
+    <div class="row">
+      <div class="col">
+        <h1 class="h4">List your files <i class="bi bi-image"></i></h1>
+      </div>
+      <div class="col text-align-right">
+        <button class="btn btn-primary" style="float: right" id="updateImageListButton">Refresh</button>
+      </div>
+    </div>
+    <p class="mt-2">
+        The images you uploaded should be shown here.
+        When the refresh action is triggered, the browser makes a request to the <code>list</code> Lambda URL
+        which returns a JSON document of all items in the images and the resized images bucket. The JavaScript
+        then populates the list below using a Handlebars template.
+      </p>
+    <hr>
+    <div id="imagesContainer">
+    </div>
+  </section>
+  <footer class="pt-5 my-5 text-muted border-top">
+    Created by the LocalStack team - &copy; 2023
+  </footer>
+</div>
+
+<!-- handlebar templates -->
+<script id="image-item-template" type="text/x-handlebars-template">
+  <div class="card mt-3">
+    <div class="card-header">{{Name}}</div>
+    <div class="card-body">
+      <!-- Images Row -->
+      <div class="row mb-3">
+        <!-- Original Image -->
+        <div class="col-md-4 text-center mb-2">
+          <div class="card h-100">
+            <div class="card-header py-1 bg-light">
+              <small><b>Original</b></small>
+            </div>
+            <div class="card-body p-2 d-flex align-items-center justify-content-center" style="min-height: 200px;">
+              <img src="{{Original.URL}}" class="img-fluid" alt="Original - {{Name}}" style="max-height: 180px; max-width: 100%;">
+            </div>
+            <div class="card-footer py-1">
+              <small>{{Original.Size}} bytes</small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Resized Image -->
+        <div class="col-md-4 text-center mb-2">
+          <div class="card h-100">
+            <div class="card-header py-1 bg-light">
+              <small><b>Resized</b></small>
+            </div>
+            <div class="card-body p-2 d-flex align-items-center justify-content-center" style="min-height: 200px;">
+              <img src="{{Resized.URL}}" class="img-fluid" alt="Resized - {{Name}}" style="max-height: 180px; max-width: 100%;">
+            </div>
+            <div class="card-footer py-1">
+              <small>{{Resized.Size}} bytes</small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Styled Image (if exists) -->
+        {{#if Styled}}
+        <div class="col-md-4 text-center mb-2">
+          <div class="card h-100 border-info">
+            <div class="card-header py-1 bg-info text-white">
+              <small><b>AI Styled</b> <span class="badge bg-light text-info">{{Styled.Style}}</span></small>
+            </div>
+            <div class="card-body p-2 d-flex align-items-center justify-content-center" style="min-height: 200px;">
+              <img src="{{Styled.URL}}" class="img-fluid" alt="Styled - {{Name}}" style="max-height: 180px; max-width: 100%;">
+            </div>
+            <div class="card-footer py-1">
+              <small>{{Styled.Size}} bytes</small>
+            </div>
+          </div>
+        </div>
+        {{else}}
+        <!-- Style Selector (when no styled version) -->
+        <div class="col-md-4 text-center mb-2">
+          <div class="card h-100 border-secondary">
+            <div class="card-header py-1 bg-secondary text-white">
+              <small><b>Apply AI Style</b></small>
+            </div>
+            <div class="card-body p-3 d-flex flex-column justify-content-center" style="min-height: 200px;">
+              <label class="form-label"><small>Choose a style:</small></label>
+              <select class="form-select form-select-sm style-select mb-2" data-image="{{Name}}">
+                <option value="">Select style...</option>
+                <option value="oil_painting">Oil Painting</option>
+                <option value="watercolor">Watercolor</option>
+                <option value="anime">Anime</option>
+                <option value="sketch">Sketch</option>
+                <option value="vangogh">Van Gogh</option>
+                <option value="cyberpunk">Cyberpunk</option>
+                <option value="vintage">Vintage</option>
+              </select>
+              <button class="btn btn-primary btn-sm apply-style-btn" type="button" data-image="{{Name}}">
+                <i class="bi bi-magic"></i> Apply Style
+              </button>
+              <div class="style-status mt-2 small" data-image="{{Name}}"></div>
+            </div>
+            <div class="card-footer py-1 bg-light">
+              <small class="text-muted">Transform your image</small>
+            </div>
+          </div>
+        </div>
+        {{/if}}
+      </div>
+      
+      <!-- Info Row -->
+      <div class="row">
+        <div class="col-12">
+          <p class="mb-1"><b>{{Name}}</b></p>
+          <p class="text-muted mb-0 small">Uploaded: {{Timestamp}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<!-- scripts -->
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"
+        integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ="
+        crossorigin="anonymous"></script>
+
+<!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+        crossorigin="anonymous"></script>
+
+<!-- handlebars -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"
+        crossorigin="anonymous"></script>
+
+<!-- client app -->
+<script src="app.js"></script>
+</body>
+</html>
